@@ -7,7 +7,26 @@ import {
 } from './defaultData';
 
 const DB_KEY = 'bayanapalli_community_db';
-const API_BASE = '/api';
+
+// Helper to determine candidate API URLs for multi-device & network access
+const getApiBaseUrls = () => {
+  const urls = [];
+  // 1. Environment variable if defined (e.g. Vercel/Render deployment)
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
+    urls.push(import.meta.env.VITE_API_URL.replace(/\/$/, ''));
+  }
+  // 2. Relative API path (via Vite dev server proxy)
+  urls.push('/api');
+  // 3. Direct network IP fallback (e.g. phone connecting to host computer on LAN)
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const hostname = window.location.hostname;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      const protocol = window.location.protocol || 'http:';
+      urls.push(`${protocol}//${hostname}:5000/api`);
+    }
+  }
+  return urls;
+};
 
 // Cross-tab / Broadcast notification system
 const dbChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('bayanapalli_db_channel') : null;
@@ -77,52 +96,67 @@ export const getDatabase = () => {
   return initDatabase();
 };
 
-// Save Database to both Express backend disk file (server/data/db.json) AND localStorage
+// Save Database to Express backend disk file (server/data/db.json) AND localStorage
 export const saveDatabase = async (data) => {
   if (!data) return;
 
-  // 1. Primary Save: Express Backend API (Writes server/data/db.json to disk)
-  try {
-    const response = await fetch(`${API_BASE}/database`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      console.error('Express server responded with error status:', response.status);
+  const candidateUrls = getApiBaseUrls();
+  let savedSuccessfully = false;
+
+  for (const apiBase of candidateUrls) {
+    try {
+      const response = await fetch(`${apiBase}/database`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (response.ok) {
+        savedSuccessfully = true;
+        break;
+      }
+    } catch (e) {
+      console.warn(`Express server at ${apiBase} not reachable for saveDatabase:`, e);
     }
-  } catch (e) {
-    console.warn('Express server not reachable for saveDatabase.', e);
   }
 
-  // 2. Secondary Cache: Browser localStorage (safely wrapped against QuotaExceededError)
+  if (!savedSuccessfully) {
+    console.warn('Could not reach Express server on any candidate URL to save database.');
+  }
+
+  // Secondary Cache: Browser localStorage (safely wrapped against QuotaExceededError)
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(data));
   } catch (e) {
     console.warn('localStorage setItem skipped or failed (likely quota exceeded):', e);
   }
 
-  // 3. Notify all React components and open browser tabs
+  // Notify all React components and open browser tabs
   notifyDbChanged();
 };
 
 // --- API Persistence Helpers ---
 
 export const fetchDatabaseApi = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/database`);
-    if (res.ok) {
-      const data = await res.json();
-      try {
-        localStorage.setItem(DB_KEY, JSON.stringify(data));
-      } catch (e) {
-        console.warn('localStorage cache update failed:', e);
+  const candidateUrls = getApiBaseUrls();
+
+  for (const apiBase of candidateUrls) {
+    try {
+      const res = await fetch(`${apiBase}/database`);
+      if (res.ok) {
+        const data = await res.json();
+        try {
+          localStorage.setItem(DB_KEY, JSON.stringify(data));
+        } catch (e) {
+          console.warn('localStorage cache update failed:', e);
+        }
+        return data;
       }
-      return data;
+    } catch (e) {
+      console.warn(`Express server at ${apiBase} not reachable, trying next endpoint...`, e);
     }
-  } catch (e) {
-    console.warn('Express server not reachable, using local storage cache.', e);
   }
+
+  console.warn('Express server not reachable on any URL, falling back to local storage cache.');
   return getDatabase();
 };
 
