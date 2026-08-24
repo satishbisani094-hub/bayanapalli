@@ -193,30 +193,22 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
         .hero-section {
           position: relative;
           padding: 60px 0;
-          min-height: 520px;
-          background-image: url('https://images.unsplash.com/photo-1609766857041-ed402ea8069a?w=1920&auto=format&fit=crop');
-          background-size: cover;
-          background-position: center;
+          min-height: 480px;
+          background-color: #2d0814;
           display: flex;
           align-items: center;
           color: #ffffff;
         }
 
         .hero-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(40, 8, 18, 0.88) 0%, rgba(15, 4, 10, 0.92) 100%);
-          z-index: 1;
+          display: none;
         }
 
         .hero-grid {
           position: relative;
           z-index: 2;
           display: grid;
-          grid-template-columns: 1.15fr 0.85fr;
+          grid-template-columns: 1fr 1fr;
           gap: 40px;
           align-items: center;
           width: 100%;
@@ -234,18 +226,18 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
 
         .hero-divine-img {
           width: 100%;
-          max-width: 380px;
-          max-height: 500px;
-          object-fit: cover;
-          border-radius: 20px;
-          border: 4px solid var(--accent);
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(212, 175, 55, 0.45);
+          max-width: 520px;
+          height: auto;
+          object-fit: contain;
+          border-radius: 16px;
+          border: 3.5px solid var(--accent);
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(212, 175, 55, 0.4);
           transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
 
         .hero-divine-img:hover {
-          transform: translateY(-6px) scale(1.02);
-          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), 0 0 40px rgba(212, 175, 55, 0.6);
+          transform: translateY(-4px) scale(1.02);
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 35px rgba(212, 175, 55, 0.55);
         }
 
         .hero-welcome {
