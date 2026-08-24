@@ -21,13 +21,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-const DATA_DIR = path.join(__dirname, 'server', 'data');
+const IS_VERCEL = Boolean(process.env.VERCEL);
+const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, 'server', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+// In-memory cache for serverless instance persistence
+let inMemoryDb = null;
 
 // Initial seed database helper
 const getInitialDatabase = () => ({
@@ -41,28 +40,47 @@ const getInitialDatabase = () => ({
 
 // Helper to read database file
 const readDatabase = () => {
+  if (inMemoryDb) {
+    return inMemoryDb;
+  }
   try {
     if (!fs.existsSync(DB_FILE)) {
       const initial = getInitialDatabase();
-      fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+      try {
+        if (!fs.existsSync(DATA_DIR)) {
+          fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+      } catch (e) {
+        console.warn('Could not write initial DB_FILE to disk:', e);
+      }
+      inMemoryDb = initial;
       return initial;
     }
     const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    inMemoryDb = parsed;
+    return parsed;
   } catch (error) {
     console.error('Error reading DB file, returning initial database:', error);
-    return getInitialDatabase();
+    const initial = getInitialDatabase();
+    inMemoryDb = initial;
+    return initial;
   }
 };
 
 // Helper to write database file
 const writeDatabase = (data) => {
+  inMemoryDb = data;
   try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
     return true;
   } catch (error) {
-    console.error('Error writing DB file:', error);
-    return false;
+    console.warn('Writing DB file to disk skipped/failed (Vercel read-only fallback used):', error);
+    return true;
   }
 };
 
@@ -348,7 +366,11 @@ app.delete('/api/messages/:id', (req, res) => {
   res.json({ message: 'Message deleted', id });
 });
 
-// Start Express Server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Express server is running on http://0.0.0.0:${PORT}`);
-});
+// Start Express Server locally (skip listen on Vercel Serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Express server is running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+export default app;

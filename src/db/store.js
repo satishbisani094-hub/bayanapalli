@@ -8,6 +8,8 @@ import {
 
 const DB_KEY = 'bayanapalli_community_db';
 
+const isIpAddress = (host) => /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+
 // Helper to determine candidate API URLs for multi-device & network access
 const getApiBaseUrls = () => {
   const urls = [];
@@ -15,12 +17,12 @@ const getApiBaseUrls = () => {
   if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
     urls.push(import.meta.env.VITE_API_URL.replace(/\/$/, ''));
   }
-  // 2. Relative API path (via Vite dev server proxy)
+  // 2. Relative API path (Works natively on Vercel via api/index.js & local Vite proxy)
   urls.push('/api');
-  // 3. Direct network IP fallback (e.g. phone connecting to host computer on LAN)
+  // 3. Direct LAN IP fallback only if hostname is an IPv4 address (e.g. 192.168.1.50:5000)
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    if (isIpAddress(hostname)) {
       const protocol = window.location.protocol || 'http:';
       urls.push(`${protocol}//${hostname}:5000/api`);
     }
