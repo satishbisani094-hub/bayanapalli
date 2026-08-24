@@ -20,7 +20,7 @@ export const DatabaseProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync state with database store
+  // Sync state with Express database API
   const refreshState = (dataOverride) => {
     const data = dataOverride || db.getDatabase();
     setCommittee(data.committee || []);
@@ -31,14 +31,34 @@ export const DatabaseProvider = ({ children }) => {
     setMessages(data.messages || []);
   };
 
+  const syncFromApi = async () => {
+    const freshData = await db.fetchDatabaseApi();
+    refreshState(freshData);
+    return freshData;
+  };
+
   useEffect(() => {
-    // Async Initial load from Express API
+    // Initial load from Express API
     const init = async () => {
-      const data = await db.fetchDatabaseApi();
-      refreshState(data);
+      await syncFromApi();
       setLoading(false);
     };
     init();
+
+    // Subscribe to cross-tab DB changes
+    const unsubscribe = db.subscribeDbChanged(() => {
+      syncFromApi();
+    });
+
+    // Periodic polling to catch external changes
+    const interval = setInterval(() => {
+      syncFromApi();
+    }, 5000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   // --- Wrapper Actions ---
@@ -46,92 +66,92 @@ export const DatabaseProvider = ({ children }) => {
   // Committee
   const addCommitteeMember = async (member) => {
     const newMember = await db.addMember(member);
-    refreshState();
+    await syncFromApi();
     return newMember;
   };
 
   const updateCommitteeMember = async (id, fields) => {
     await db.updateMember(id, fields);
-    refreshState();
+    await syncFromApi();
   };
 
   const deleteCommitteeMember = async (id) => {
     await db.deleteMember(id);
-    refreshState();
+    await syncFromApi();
   };
 
   // Festivals
   const addCommunityFestival = async (festival) => {
     const newFes = await db.addFestival(festival);
-    refreshState();
+    await syncFromApi();
     return newFes;
   };
 
   const updateCommunityFestival = async (id, fields) => {
     await db.updateFestival(id, fields);
-    refreshState();
+    await syncFromApi();
   };
 
   const deleteCommunityFestival = async (id) => {
     await db.deleteFestival(id);
-    refreshState();
+    await syncFromApi();
   };
 
   // Albums
   const addPhotoAlbum = async (album) => {
     const newAlb = await db.addAlbum(album);
-    refreshState();
+    await syncFromApi();
     return newAlb;
   };
 
   const updatePhotoAlbum = async (id, fields) => {
     await db.updateAlbum(id, fields);
-    refreshState();
+    await syncFromApi();
   };
 
   const deletePhotoAlbum = async (id) => {
     await db.deleteAlbum(id);
-    refreshState();
+    await syncFromApi();
   };
 
   // Photos
   const addPhotosToAlbum = async (newPhotos) => {
     const added = await db.addPhotos(newPhotos);
-    refreshState();
+    await syncFromApi();
     return added;
   };
 
   const updateAlbumPhoto = async (id, fields) => {
     await db.updatePhoto(id, fields);
-    refreshState();
+    await syncFromApi();
   };
 
   const deleteAlbumPhoto = async (id) => {
     await db.deletePhoto(id);
-    refreshState();
+    await syncFromApi();
   };
 
   const likeAlbumPhoto = async (id) => {
     const updated = await db.likePhoto(id);
-    refreshState();
+    await syncFromApi();
     return updated;
   };
 
   // Messages
   const sendContactMessage = async (msg) => {
     const newMsg = await db.addMessage(msg);
-    refreshState();
+    await syncFromApi();
     return newMsg;
   };
 
   const toggleMessageRead = async (id) => {
     await db.toggleMessageReadStatus(id);
-    refreshState();
+    await syncFromApi();
   };
 
   const removeMessage = async (id) => {
     await db.deleteMessage(id);
-    refreshState();
+    await syncFromApi();
   };
 
   // Backup & Restore
@@ -142,7 +162,7 @@ export const DatabaseProvider = ({ children }) => {
   const restoreDB = async (jsonString) => {
     const success = await db.importDatabase(jsonString);
     if (success) {
-      refreshState();
+      await syncFromApi();
     }
     return success;
   };

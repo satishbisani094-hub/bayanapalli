@@ -68,6 +68,11 @@ const writeDatabase = (data) => {
 
 // --- REST API ENDPOINTS ---
 
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Full Database Get & Replace
 app.get('/api/database', (req, res) => {
   const db = readDatabase();

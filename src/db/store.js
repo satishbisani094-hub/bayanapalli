@@ -9,34 +9,65 @@ import {
 const DB_KEY = 'bayanapalli_community_db';
 const API_BASE = '/api';
 
-// Initialize Database in localStorage
-export const initDatabase = () => {
-  const existingData = localStorage.getItem(DB_KEY);
-  if (!existingData) {
-    const initialDb = {
-      committee: DEFAULT_COMMITTEE,
-      festivals: DEFAULT_FESTIVALS,
-      albums: DEFAULT_ALBUMS,
-      photos: DEFAULT_PHOTOS,
-      milestones: DEFAULT_MILESTONES,
-      messages: []
-    };
-    localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
-    return initialDb;
-  }
+// Cross-tab / Broadcast notification system
+const dbChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('bayanapalli_db_channel') : null;
+
+export const notifyDbChanged = () => {
   try {
+    if (dbChannel) {
+      dbChannel.postMessage({ type: 'DB_UPDATED', timestamp: Date.now() });
+    }
+    window.dispatchEvent(new CustomEvent('bayanapalli_db_updated'));
+  } catch (e) {
+    console.warn('Failed to broadcast db change event:', e);
+  }
+};
+
+export const subscribeDbChanged = (callback) => {
+  const handleMessage = (e) => {
+    if (e.data && e.data.type === 'DB_UPDATED') {
+      callback();
+    }
+  };
+  const handleCustomEvent = () => callback();
+
+  if (dbChannel) {
+    dbChannel.addEventListener('message', handleMessage);
+  }
+  window.addEventListener('bayanapalli_db_updated', handleCustomEvent);
+
+  return () => {
+    if (dbChannel) {
+      dbChannel.removeEventListener('message', handleMessage);
+    }
+    window.removeEventListener('bayanapalli_db_updated', handleCustomEvent);
+  };
+};
+
+// Initialize Database in localStorage safely
+export const initDatabase = () => {
+  const initialDb = {
+    committee: DEFAULT_COMMITTEE,
+    festivals: DEFAULT_FESTIVALS,
+    albums: DEFAULT_ALBUMS,
+    photos: DEFAULT_PHOTOS,
+    milestones: DEFAULT_MILESTONES,
+    messages: []
+  };
+
+  try {
+    const existingData = localStorage.getItem(DB_KEY);
+    if (!existingData) {
+      try {
+        localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
+      } catch (e) {
+        console.warn('Could not write initial DB to localStorage:', e);
+      }
+      return initialDb;
+    }
     return JSON.parse(existingData);
   } catch (e) {
-    console.error('Failed to parse database, resetting to default.', e);
-    const initialDb = {
-      committee: DEFAULT_COMMITTEE,
-      festivals: DEFAULT_FESTIVALS,
-      albums: DEFAULT_ALBUMS,
-      photos: DEFAULT_PHOTOS,
-      milestones: DEFAULT_MILESTONES,
-      messages: []
-    };
-    localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
+    console.error('Failed to parse database from localStorage, resetting.', e);
     return initialDb;
   }
 };
@@ -46,20 +77,33 @@ export const getDatabase = () => {
   return initDatabase();
 };
 
-// Save Database to both localStorage AND Express backend disk file (server/data/db.json)
+// Save Database to both Express backend disk file (server/data/db.json) AND localStorage
 export const saveDatabase = async (data) => {
   if (!data) return;
-  localStorage.setItem(DB_KEY, JSON.stringify(data));
 
+  // 1. Primary Save: Express Backend API (Writes server/data/db.json to disk)
   try {
-    await fetch(`${API_BASE}/database`, {
+    const response = await fetch(`${API_BASE}/database`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    if (!response.ok) {
+      console.error('Express server responded with error status:', response.status);
+    }
   } catch (e) {
     console.warn('Express server not reachable for saveDatabase.', e);
   }
+
+  // 2. Secondary Cache: Browser localStorage (safely wrapped against QuotaExceededError)
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('localStorage setItem skipped or failed (likely quota exceeded):', e);
+  }
+
+  // 3. Notify all React components and open browser tabs
+  notifyDbChanged();
 };
 
 // --- API Persistence Helpers ---
@@ -69,7 +113,11 @@ export const fetchDatabaseApi = async () => {
     const res = await fetch(`${API_BASE}/database`);
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem(DB_KEY, JSON.stringify(data));
+      try {
+        localStorage.setItem(DB_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn('localStorage cache update failed:', e);
+      }
       return data;
     }
   } catch (e) {

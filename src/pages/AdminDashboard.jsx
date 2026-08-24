@@ -107,13 +107,13 @@ export default function AdminDashboard() {
   };
 
   // --- Database Backup Import ---
-  const handleImportDB = (e) => {
+  const handleImportDB = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const success = restoreDB(event.target.result);
+    reader.onload = async (event) => {
+      const success = await restoreDB(event.target.result);
       if (success) {
         alert("Database restored successfully!");
       } else {
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
   // --- CRUD Actions ---
 
   // A. Committee Actions
-  const handleSaveMember = (e) => {
+  const handleSaveMember = async (e) => {
     e.preventDefault();
     if (!memberForm.name.trim() || !memberForm.description.trim()) {
       alert("Please fill in the name and description fields.");
@@ -146,9 +146,9 @@ export default function AdminDashboard() {
     };
 
     if (editingItem) {
-      updateCommitteeMember(editingItem.data.id, payload);
+      await updateCommitteeMember(editingItem.data.id, payload);
     } else {
-      addCommitteeMember(payload);
+      await addCommitteeMember(payload);
     }
 
     resetFormState();
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
   };
 
   // B. Festival Actions
-  const handleSaveFestival = (e) => {
+  const handleSaveFestival = async (e) => {
     e.preventDefault();
     if (!festivalForm.name.trim() || !festivalForm.location.trim()) {
       alert("Please fill in the name and location fields.");
@@ -185,9 +185,9 @@ export default function AdminDashboard() {
     };
 
     if (editingItem) {
-      updateCommunityFestival(editingItem.data.id, payload);
+      await updateCommunityFestival(editingItem.data.id, payload);
     } else {
-      addCommunityFestival(payload);
+      await addCommunityFestival(payload);
     }
 
     resetFormState();
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
   };
 
   // C. Album Actions
-  const handleSaveAlbum = (e) => {
+  const handleSaveAlbum = async (e) => {
     e.preventDefault();
     if (!albumForm.name.trim() || !albumForm.festivalId) {
       alert("Please select a Festival and enter an Album title.");
@@ -216,15 +216,15 @@ export default function AdminDashboard() {
     }
 
     if (editingItem) {
-      updatePhotoAlbum(editingItem.data.id, albumForm);
+      await updatePhotoAlbum(editingItem.data.id, albumForm);
     } else {
-      addPhotoAlbum(albumForm);
+      await addPhotoAlbum(albumForm);
     }
     resetFormState();
   };
 
   // D. Media Upload Actions
-  const handleUploadPhotos = (e) => {
+  const handleUploadPhotos = async (e) => {
     e.preventDefault();
     if (!photoForm.albumId) {
       alert("Please select an Album to upload photos to.");
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    addPhotosToAlbum(photoEntries);
+    await addPhotosToAlbum(photoEntries);
     resetFormState();
     alert(`Successfully loaded ${photoEntries.length} photos!`);
   };
