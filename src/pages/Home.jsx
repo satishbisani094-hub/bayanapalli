@@ -188,7 +188,7 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
           max-height: 750px;
           background-image: url('/all_gods_hero.png');
           background-size: cover;
-          background-position: center top;
+          background-position: center 25%;
           display: flex;
           align-items: center;
           color: #ffffff;
@@ -200,7 +200,7 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(20, 10, 30, 0.45) 0%, rgba(10, 5, 15, 0.55) 100%);
+          background: linear-gradient(135deg, rgba(20, 10, 30, 0.4) 0%, rgba(10, 5, 15, 0.5) 100%);
           z-index: 1;
         }
 
