@@ -1,0 +1,39 @@
+{
+  "committee": [],
+  "festivals": [],
+  "albums": [],
+  "photos": [],
+  "milestones": [
+    {
+      "id": "m1",
+      "year": "2018",
+      "title": "Community Trust Inception",
+      "description": "The trust was officially registered under the leadership of Sri. Rama Rao Bayanapalli, uniting 50 founding families."
+    },
+    {
+      "id": "m2",
+      "year": "2020",
+      "title": "First Community Hall Built",
+      "description": "Constructed the Bayanapalli Community Hall to host spiritual, social, and cultural events locally."
+    },
+    {
+      "id": "m3",
+      "year": "2022",
+      "title": "Green Township & Wellness Program",
+      "description": "Initiated a township-wide tree plantation drive and free monthly health clinics for members."
+    },
+    {
+      "id": "m4",
+      "year": "2024",
+      "title": "Educational Scholarship Scheme",
+      "description": "Launched an annual scholarship program funding higher education for meritorious children of support staff."
+    },
+    {
+      "id": "m5",
+      "year": "2026",
+      "title": "Digital Community Platform",
+      "description": "Inaugurated our official community portal to preserve archives, member directories, and event history."
+    }
+  ],
+  "messages": []
+}
