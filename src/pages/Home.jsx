@@ -51,19 +51,28 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-overlay"></div>
-        <div className="container hero-content">
-          <span className="hero-welcome">WELCOME TO THE DIGITAL GATEWAY OF</span>
-          <h1 className="hero-title">Bayanapalli Community</h1>
-          <p className="hero-subtitle">
-            Preserving our vibrant heritage, celebrating our traditions, and strengthening community bonds across generations.
-          </p>
-          <div className="hero-ctas">
-            <button className="btn btn-accent" onClick={handleExploreGallery}>
-              <ImageIcon size={18} /> Explore Gallery
-            </button>
-            <button className="btn btn-outline-white" onClick={handleMeetCommittee}>
-              <Users size={18} /> Meet Our Committee
-            </button>
+        <div className="container hero-grid">
+          <div className="hero-content">
+            <span className="hero-welcome">WELCOME TO THE DIGITAL GATEWAY OF</span>
+            <h1 className="hero-title">Bayanapalli Community</h1>
+            <p className="hero-subtitle">
+              Preserving our vibrant heritage, celebrating our traditions, and strengthening community bonds across generations.
+            </p>
+            <div className="hero-ctas">
+              <button className="btn btn-accent" onClick={handleExploreGallery}>
+                <ImageIcon size={18} /> Explore Gallery
+              </button>
+              <button className="btn btn-outline-white" onClick={handleMeetCommittee}>
+                <Users size={18} /> Meet Our Committee
+              </button>
+            </div>
+          </div>
+          <div className="hero-image-card">
+            <img 
+              src="/all_gods_hero.png" 
+              alt="Lord Ganesha Divine Idol" 
+              className="hero-divine-img"
+            />
           </div>
         </div>
       </section>
@@ -183,12 +192,11 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
       <style>{`
         .hero-section {
           position: relative;
-          height: 80vh;
-          min-height: 500px;
-          max-height: 750px;
-          background-image: url('/all_gods_hero.png');
+          padding: 60px 0;
+          min-height: 520px;
+          background-image: url('https://images.unsplash.com/photo-1609766857041-ed402ea8069a?w=1920&auto=format&fit=crop');
           background-size: cover;
-          background-position: center 25%;
+          background-position: center;
           display: flex;
           align-items: center;
           color: #ffffff;
@@ -200,16 +208,44 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(20, 10, 30, 0.4) 0%, rgba(10, 5, 15, 0.5) 100%);
+          background: linear-gradient(135deg, rgba(40, 8, 18, 0.88) 0%, rgba(15, 4, 10, 0.92) 100%);
           z-index: 1;
         }
 
-        .hero-content {
+        .hero-grid {
           position: relative;
           z-index: 2;
-          max-width: 800px;
-          animation: fadeInUp var(--transition-slow) forwards;
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 40px;
+          align-items: center;
+          width: 100%;
+        }
+
+        .hero-content {
           text-align: left;
+        }
+
+        .hero-image-card {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .hero-divine-img {
+          width: 100%;
+          max-width: 380px;
+          max-height: 500px;
+          object-fit: cover;
+          border-radius: 20px;
+          border: 4px solid var(--accent);
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(212, 175, 55, 0.45);
+          transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .hero-divine-img:hover {
+          transform: translateY(-6px) scale(1.02);
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), 0 0 40px rgba(212, 175, 55, 0.6);
         }
 
         .hero-welcome {
@@ -460,6 +496,24 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
           }
           .home-photos-grid {
             grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 900px) {
+          .hero-grid {
+            grid-template-columns: 1fr;
+            gap: 30px;
+            text-align: center;
+          }
+          .hero-content {
+            text-align: center;
+          }
+          .hero-ctas {
+            justify-content: center;
+          }
+          .hero-divine-img {
+            max-width: 280px;
+            max-height: 360px;
           }
         }
 
