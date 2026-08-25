@@ -146,9 +146,10 @@ export const saveDatabase = async (data) => {
 // --- API Persistence Helpers ---
 
 export const fetchDatabaseApi = async () => {
-  // 1. Fetch from Remote Cloud DB (npoint.io)
+  // 1. Fetch from Remote Cloud DB (npoint.io) with cache-busting to prevent stale mobile/browser HTTP cache
   try {
-    const res = await fetch(REMOTE_DB_URL);
+    const cacheBusterUrl = `${REMOTE_DB_URL}?t=${Date.now()}`;
+    const res = await fetch(cacheBusterUrl, { cache: 'no-store' });
     if (res.ok) {
       const text = await res.text();
       try {
@@ -195,11 +196,15 @@ export const fetchDatabaseApi = async () => {
   return getDatabase();
 };
 
+export const getFreshDatabase = async () => {
+  return await fetchDatabaseApi();
+};
+
 // Committee Members
 export const getMembers = () => getDatabase().committee;
 
 export const addMember = async (member) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   const newMember = {
     ...member,
     id: member.id || `member_${Date.now()}`
@@ -210,13 +215,13 @@ export const addMember = async (member) => {
 };
 
 export const updateMember = async (id, updatedFields) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.committee = db.committee.map(m => m.id === id ? { ...m, ...updatedFields } : m);
   await saveDatabase(db);
 };
 
 export const deleteMember = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.committee = db.committee.filter(m => m.id !== id);
   await saveDatabase(db);
 };
@@ -225,7 +230,7 @@ export const deleteMember = async (id) => {
 export const getFestivals = () => getDatabase().festivals;
 
 export const addFestival = async (festival) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   const newFestival = {
     ...festival,
     id: festival.id || `fes_${Date.now()}`,
@@ -246,14 +251,14 @@ export const addFestival = async (festival) => {
 };
 
 export const updateFestival = async (id, updatedFields) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   if (updatedFields.year) updatedFields.year = parseInt(updatedFields.year);
   db.festivals = db.festivals.map(f => f.id === id ? { ...f, ...updatedFields } : f);
   await saveDatabase(db);
 };
 
 export const deleteFestival = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.festivals = db.festivals.filter(f => f.id !== id);
   const albumsToDelete = db.albums.filter(a => a.festivalId === id).map(a => a.id);
   db.photos = db.photos.filter(p => !albumsToDelete.includes(p.albumId));
@@ -265,7 +270,7 @@ export const deleteFestival = async (id) => {
 export const getAlbums = () => getDatabase().albums;
 
 export const addAlbum = async (album) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   const newAlbum = {
     ...album,
     id: album.id || `alb_${Date.now()}`,
@@ -277,14 +282,14 @@ export const addAlbum = async (album) => {
 };
 
 export const updateAlbum = async (id, updatedFields) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   if (updatedFields.year) updatedFields.year = parseInt(updatedFields.year);
   db.albums = db.albums.map(a => a.id === id ? { ...a, ...updatedFields } : a);
   await saveDatabase(db);
 };
 
 export const deleteAlbum = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.albums = db.albums.filter(a => a.id !== id);
   db.photos = db.photos.filter(p => p.albumId !== id);
   await saveDatabase(db);
@@ -294,7 +299,7 @@ export const deleteAlbum = async (id) => {
 export const getPhotos = () => getDatabase().photos;
 
 export const addPhotos = async (newPhotos) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   const added = [];
   newPhotos.forEach((photo, index) => {
     const item = {
@@ -310,19 +315,19 @@ export const addPhotos = async (newPhotos) => {
 };
 
 export const updatePhoto = async (id, updatedFields) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.photos = db.photos.map(p => p.id === id ? { ...p, ...updatedFields } : p);
   await saveDatabase(db);
 };
 
 export const deletePhoto = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.photos = db.photos.filter(p => p.id !== id);
   await saveDatabase(db);
 };
 
 export const likePhoto = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.photos = db.photos.map(p => p.id === id ? { ...p, likes: (p.likes || 0) + 1 } : p);
   await saveDatabase(db);
   return db.photos.find(p => p.id === id);
@@ -335,7 +340,7 @@ export const getMilestones = () => getDatabase().milestones;
 export const getMessages = () => getDatabase().messages;
 
 export const addMessage = async (message) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   const newMessage = {
     ...message,
     id: message.id || `msg_${Date.now()}`,
@@ -348,13 +353,13 @@ export const addMessage = async (message) => {
 };
 
 export const toggleMessageReadStatus = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.messages = db.messages.map(m => m.id === id ? { ...m, readStatus: !m.readStatus } : m);
   await saveDatabase(db);
 };
 
 export const deleteMessage = async (id) => {
-  const db = getDatabase();
+  const db = await getFreshDatabase();
   db.messages = db.messages.filter(m => m.id !== id);
   await saveDatabase(db);
 };
