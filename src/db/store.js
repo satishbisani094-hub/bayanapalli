@@ -67,22 +67,8 @@ export const subscribeDbChanged = (callback) => {
   };
 };
 
-// Helper to remove legacy seed items if stored in browser local state
-const DEFAULT_IDS = new Set([
-  'c1','c2','c3','c4','c5','c6','f1','f2','f3','f4',
-  'fes1','fes2','fes3','fes4','fes5',
-  'alb1','alb2','alb3','alb4','alb5',
-  'p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','p13','p14','p15','p16'
-]);
-
-const sanitizeDb = (data) => {
-  if (!data) return data;
-  if (Array.isArray(data.committee)) data.committee = data.committee.filter(m => !DEFAULT_IDS.has(m.id));
-  if (Array.isArray(data.festivals)) data.festivals = data.festivals.filter(f => !DEFAULT_IDS.has(f.id));
-  if (Array.isArray(data.albums)) data.albums = data.albums.filter(a => !DEFAULT_IDS.has(a.id));
-  if (Array.isArray(data.photos)) data.photos = data.photos.filter(p => !DEFAULT_IDS.has(p.id));
-  return data;
-};
+// Central Cloud Remote Database URL (npoint.io) - identical architecture to gajawada-jewellers
+const REMOTE_DB_URL = 'https://api.npoint.io/66a94c8fdb996c0457c1';
 
 // Initialize Database in localStorage safely
 export const initDatabase = () => {
@@ -105,9 +91,7 @@ export const initDatabase = () => {
       }
       return initialDb;
     }
-    const parsed = JSON.parse(existingData);
-    const sanitized = sanitizeDb(parsed);
-    return sanitized;
+    return JSON.parse(existingData);
   } catch (e) {
     console.error('Failed to parse database from localStorage, resetting.', e);
     return initialDb;
@@ -119,68 +103,95 @@ export const getDatabase = () => {
   return initDatabase();
 };
 
-// Save Database to Express backend disk file (server/data/db.json) AND localStorage
+// Save Database to Remote Cloud (npoint.io), Browser localStorage, and Express backend
 export const saveDatabase = async (data) => {
   if (!data) return;
 
-  const candidateUrls = getApiBaseUrls();
-  let savedSuccessfully = false;
+  // 1. Primary Cloud Persistence (npoint.io)
+  try {
+    await fetch(REMOTE_DB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    console.error('Could not save database to remote cloud database (npoint.io):', e);
+  }
 
+  // 2. Secondary Cache: Browser localStorage
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn('localStorage setItem failed (quota exceeded or restricted):', e);
+  }
+
+  // 3. Tertiary Cache: Express local server (if reachable)
+  const candidateUrls = getApiBaseUrls();
   for (const apiBase of candidateUrls) {
     try {
-      const response = await fetch(`${apiBase}/database`, {
+      await fetch(`${apiBase}/database`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (response.ok) {
-        savedSuccessfully = true;
-        break;
-      }
     } catch (e) {
-      console.warn(`Express server at ${apiBase} not reachable for saveDatabase:`, e);
+      // Background Express sync error ignored
     }
   }
 
-  if (!savedSuccessfully) {
-    console.warn('Could not reach Express server on any candidate URL to save database.');
-  }
-
-  // Secondary Cache: Browser localStorage (safely wrapped against QuotaExceededError)
-  try {
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn('localStorage setItem skipped or failed (likely quota exceeded):', e);
-  }
-
-  // Notify all React components and open browser tabs
+  // 4. Notify open tabs & React context
   notifyDbChanged();
 };
 
 // --- API Persistence Helpers ---
 
 export const fetchDatabaseApi = async () => {
-  const candidateUrls = getApiBaseUrls();
+  // 1. Fetch from Remote Cloud DB (npoint.io)
+  try {
+    const res = await fetch(REMOTE_DB_URL);
+    if (res.ok) {
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if (data && typeof data === 'object' && Array.isArray(data.committee)) {
+          try {
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+          } catch (e) {
+            console.warn('localStorage cache update failed:', e);
+          }
+          return data;
+        }
+      } catch (jsonErr) {
+        console.warn('Remote cloud returned non-JSON payload (e.g. rate limit), falling back to local cache.');
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch database from remote cloud (npoint.io), trying local endpoints:', e);
+  }
 
+  // 2. Fallback to Express backend endpoints
+  const candidateUrls = getApiBaseUrls();
   for (const apiBase of candidateUrls) {
     try {
       const res = await fetch(`${apiBase}/database`);
       if (res.ok) {
         const data = await res.json();
-        const sanitized = sanitizeDb(data);
-        try {
-          localStorage.setItem(DB_KEY, JSON.stringify(sanitized));
-        } catch (e) {
-          console.warn('localStorage cache update failed:', e);
+        if (data && typeof data === 'object' && Array.isArray(data.committee)) {
+          try {
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+          } catch (e) {
+            console.warn('localStorage cache update failed:', e);
+          }
+          return data;
         }
-        return sanitized;
       }
     } catch (e) {
-      console.warn(`Express server at ${apiBase} not reachable, trying next endpoint...`, e);
+      console.warn(`Express server at ${apiBase} not reachable:`, e);
     }
   }
 
-  console.warn('Express server not reachable on any URL, falling back to local storage cache.');
+  // 3. Fallback to localStorage cache
+  console.warn('Remote cloud & Express server not reachable, using local storage cache.');
   return getDatabase();
 };
 

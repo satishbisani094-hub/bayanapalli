@@ -38,7 +38,7 @@ export const DatabaseProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial load from Express API
+    // Initial load from Remote Cloud DB & local caches
     const init = async () => {
       await syncFromApi();
       setLoading(false);
@@ -50,14 +50,21 @@ export const DatabaseProvider = ({ children }) => {
       syncFromApi();
     });
 
-    // Periodic polling to catch external changes
+    // Periodic polling (every 15s, matching gajawada-jewellers) to keep data in live sync
     const interval = setInterval(() => {
       syncFromApi();
-    }, 5000);
+    }, 15000);
+
+    // Sync remote data whenever user returns to or focuses the tab
+    const handleFocus = () => {
+      syncFromApi();
+    };
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       unsubscribe();
       clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
