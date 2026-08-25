@@ -222,7 +222,7 @@ export default function AdminDashboard() {
   // --- Auth Handlers ---
   const handleLogin = (e) => {
     e.preventDefault();
-    if (passcode === 'admin123') {
+    if (passcode === 'Satishkumarreddy@1234') {
       setIsAuthenticated(true);
       sessionStorage.setItem('bayanapalli_admin_auth', 'true');
       setLoginError('');
@@ -537,7 +537,7 @@ export default function AdminDashboard() {
             </button>
 
             <div className="admin-tip-footer" style={{ marginTop: '16px' }}>
-              Default passcode for review: <code>admin123</code>
+              Protected Administrator Access Portal
             </div>
           </div>
         </div>
