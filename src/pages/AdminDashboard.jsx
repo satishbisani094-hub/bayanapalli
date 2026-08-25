@@ -1,8 +1,8 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   ShieldCheck, ShieldAlert, LogOut, Database, Users, Calendar, 
-  Image as ImageIcon, Mail, Plus, Edit, Trash2, Check, X, 
-  Upload, Download, RefreshCw, FileJson, ArrowRight, Eye, EyeOff
+  Image as ImageIcon, Mail, Plus, Edit, Trash2, X, 
+  Upload, Download, Eye, EyeOff
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 
@@ -81,29 +81,62 @@ export default function AdminDashboard() {
     setActiveTab('overview');
   };
 
-  // --- Image Reader ---
-  const handleFileChange = (e) => {
+  // Helper: Image compression via HTML5 Canvas
+  const compressImageFile = (file, maxWidth = 1200, maxHeight = 1200, quality = 0.82) => {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith('image/')) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // --- Image Reader & Auto-Compressor ---
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // File validation: Size limit (max 1MB to respect localStorage quota)
-    if (file.size > 1 * 1024 * 1024) {
-      alert("Selected image is larger than 1MB. Please upload a compressed web image to protect browser storage.");
-      e.target.value = '';
-      return;
-    }
-    // File validation: Type
     if (!file.type.startsWith('image/')) {
-      alert("Only image files (.jpg, .jpeg, .png) are supported.");
+      alert("Only image files (.jpg, .jpeg, .png, .webp) are supported.");
       e.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setUploadedImageBase64(reader.result);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedBase64 = await compressImageFile(file);
+      if (compressedBase64) {
+        setUploadedImageBase64(compressedBase64);
+      }
+    } catch (err) {
+      console.error("Image compression error:", err);
+    }
   };
 
   // --- Database Backup Import ---

@@ -19,12 +19,14 @@ const getApiBaseUrls = () => {
   }
   // 2. Relative API path (Works natively on Vercel via api/index.js & local Vite proxy)
   urls.push('/api');
-  // 3. Direct LAN IP fallback only if hostname is an IPv4 address (e.g. 192.168.1.50:5000)
+  // 3. Direct localhost and LAN IP fallback
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
+    const protocol = window.location.protocol || 'http:';
     if (isIpAddress(hostname)) {
-      const protocol = window.location.protocol || 'http:';
       urls.push(`${protocol}//${hostname}:5000/api`);
+    } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      urls.push(`http://localhost:5000/api`);
     }
   }
   return urls;
