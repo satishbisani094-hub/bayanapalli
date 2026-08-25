@@ -139,27 +139,33 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
           <p className="section-subtitle">Take a look at the latest celebrations and social milestones of our community.</p>
         </div>
 
-        <div className="grid-3">
-          {recentFestivals.map(festival => (
-            <div key={festival.id} className="event-card card-hover">
-              <div className="event-card-img-wrapper">
-                <img src={festival.coverImage} alt={festival.name} className="event-card-img" />
-                <span className="event-card-badge">{festival.year}</span>
-              </div>
-              <div className="event-card-body">
-                <h3 className="event-card-title">{festival.name}</h3>
-                <div className="event-card-meta">
-                  <span><Calendar size={14} /> {festival.date}</span>
-                  <span><MapPin size={14} /> {festival.location}</span>
+        {recentFestivals.length === 0 ? (
+          <div className="directory-empty-state" style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <p style={{ color: 'var(--text-medium)', margin: 0 }}>No community festivals cataloged yet. New events added by trustees will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid-3">
+            {recentFestivals.map(festival => (
+              <div key={festival.id} className="event-card card-hover">
+                <div className="event-card-img-wrapper">
+                  <img src={festival.coverImage} alt={festival.name} className="event-card-img" />
+                  <span className="event-card-badge">{festival.year}</span>
                 </div>
-                <p className="event-card-desc">{festival.description.substring(0, 110)}...</p>
-                <button className="btn btn-outline btn-sm btn-block" onClick={() => handleViewFestivalPhotos(festival)}>
-                  View Event Gallery
-                </button>
+                <div className="event-card-body">
+                  <h3 className="event-card-title">{festival.name}</h3>
+                  <div className="event-card-meta">
+                    <span><Calendar size={14} /> {festival.date}</span>
+                    <span><MapPin size={14} /> {festival.location}</span>
+                  </div>
+                  <p className="event-card-desc">{festival.description.substring(0, 110)}...</p>
+                  <button className="btn btn-outline btn-sm btn-block" onClick={() => handleViewFestivalPhotos(festival)}>
+                    View Event Gallery
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Featured Memories Grid */}
@@ -170,17 +176,23 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
             <p className="section-subtitle">A glimpse of the smiles, light, and laughter that bind our families together.</p>
           </div>
 
-          <div className="home-photos-grid">
-            {featuredPhotos.map(photo => (
-              <div key={photo.id} className="home-photo-item" onClick={handleExploreGallery}>
-                <img src={photo.url} alt={photo.caption} />
-                <div className="home-photo-overlay">
-                  <p className="home-photo-caption">"{photo.caption}"</p>
-                  <span className="home-photo-sub">{photo.location}</span>
+          {featuredPhotos.length === 0 ? (
+            <div className="directory-empty-state" style={{ padding: '40px 20px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <p style={{ color: 'var(--text-medium)', margin: 0 }}>No photographs preserved in gallery archive yet. Upload photos in the Admin Dashboard.</p>
+            </div>
+          ) : (
+            <div className="home-photos-grid">
+              {featuredPhotos.map(photo => (
+                <div key={photo.id} className="home-photo-item" onClick={handleExploreGallery}>
+                  <img src={photo.url} alt={photo.caption} />
+                  <div className="home-photo-overlay">
+                    <p className="home-photo-caption">"{photo.caption}"</p>
+                    <span className="home-photo-sub">{photo.location}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <button className="btn btn-accent" onClick={handleExploreGallery} style={{ marginTop: '40px' }}>
             Browse Full Gallery Vault

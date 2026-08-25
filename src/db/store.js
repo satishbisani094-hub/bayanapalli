@@ -67,6 +67,23 @@ export const subscribeDbChanged = (callback) => {
   };
 };
 
+// Helper to remove legacy seed items if stored in browser local state
+const DEFAULT_IDS = new Set([
+  'c1','c2','c3','c4','c5','c6','f1','f2','f3','f4',
+  'fes1','fes2','fes3','fes4','fes5',
+  'alb1','alb2','alb3','alb4','alb5',
+  'p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','p13','p14','p15','p16'
+]);
+
+const sanitizeDb = (data) => {
+  if (!data) return data;
+  if (Array.isArray(data.committee)) data.committee = data.committee.filter(m => !DEFAULT_IDS.has(m.id));
+  if (Array.isArray(data.festivals)) data.festivals = data.festivals.filter(f => !DEFAULT_IDS.has(f.id));
+  if (Array.isArray(data.albums)) data.albums = data.albums.filter(a => !DEFAULT_IDS.has(a.id));
+  if (Array.isArray(data.photos)) data.photos = data.photos.filter(p => !DEFAULT_IDS.has(p.id));
+  return data;
+};
+
 // Initialize Database in localStorage safely
 export const initDatabase = () => {
   const initialDb = {
@@ -88,7 +105,9 @@ export const initDatabase = () => {
       }
       return initialDb;
     }
-    return JSON.parse(existingData);
+    const parsed = JSON.parse(existingData);
+    const sanitized = sanitizeDb(parsed);
+    return sanitized;
   } catch (e) {
     console.error('Failed to parse database from localStorage, resetting.', e);
     return initialDb;
@@ -148,12 +167,13 @@ export const fetchDatabaseApi = async () => {
       const res = await fetch(`${apiBase}/database`);
       if (res.ok) {
         const data = await res.json();
+        const sanitized = sanitizeDb(data);
         try {
-          localStorage.setItem(DB_KEY, JSON.stringify(data));
+          localStorage.setItem(DB_KEY, JSON.stringify(sanitized));
         } catch (e) {
           console.warn('localStorage cache update failed:', e);
         }
-        return data;
+        return sanitized;
       }
     } catch (e) {
       console.warn(`Express server at ${apiBase} not reachable, trying next endpoint...`, e);
