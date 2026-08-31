@@ -110,6 +110,7 @@ export default function Lightbox({ photos, activeIndex, onClose, onNext, onPrev 
             alt={activePhoto.caption || 'Community Memory'} 
             style={{ transform: `scale(${zoomScale})` }} 
             className="lightbox-main-img"
+            decoding="async"
           />
         </div>
 

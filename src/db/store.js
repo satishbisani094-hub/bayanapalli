@@ -4,7 +4,7 @@ import {
   DEFAULT_ALBUMS,
   DEFAULT_PHOTOS,
   DEFAULT_MILESTONES
-} from './defaultData';
+} from './defaultData.js';
 
 const DB_KEY = 'bayanapalli_community_db';
 
@@ -82,16 +82,19 @@ export const initDatabase = () => {
   };
 
   try {
-    const existingData = localStorage.getItem(DB_KEY);
-    if (!existingData) {
-      try {
-        localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
-      } catch (e) {
-        console.warn('Could not write initial DB to localStorage:', e);
+    if (typeof localStorage !== 'undefined') {
+      const existingData = localStorage.getItem(DB_KEY);
+      if (!existingData) {
+        try {
+          localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
+        } catch (e) {
+          console.warn('Could not write initial DB to localStorage:', e);
+        }
+        return initialDb;
       }
-      return initialDb;
+      return JSON.parse(existingData);
     }
-    return JSON.parse(existingData);
+    return initialDb;
   } catch (e) {
     console.error('Failed to parse database from localStorage, resetting.', e);
     return initialDb;
@@ -107,83 +110,134 @@ export const getDatabase = () => {
 export const saveDatabase = async (data) => {
   if (!data) return;
 
-  // 1. Primary Cloud Persistence (npoint.io)
+  // 1. Instant Cache Update: Browser localStorage
   try {
-    await fetch(REMOTE_DB_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    console.error('Could not save database to remote cloud database (npoint.io):', e);
-  }
-
-  // 2. Secondary Cache: Browser localStorage
-  try {
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DB_KEY, JSON.stringify(data));
+    }
   } catch (e) {
     console.warn('localStorage setItem failed (quota exceeded or restricted):', e);
   }
 
-  // 3. Tertiary Cache: Express local server (if reachable)
-  const candidateUrls = getApiBaseUrls();
-  for (const apiBase of candidateUrls) {
+  // 2. Notify open tabs & React context instantly (0ms delay)
+  notifyDbChanged();
+
+  // 3. Primary Cloud Persistence (npoint.io) with 3.5s timeout safeguard
+  const cloudSave = (async () => {
     try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
+      await fetch(REMOTE_DB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        signal: controller ? controller.signal : undefined
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+    } catch (e) {
+      console.warn('Could not save database to remote cloud (npoint.io):', e);
+    }
+  })();
+
+  // 4. Express local server fallback with 2s timeout safeguard
+  const candidateUrls = getApiBaseUrls();
+  const expressSaves = candidateUrls.map(async (apiBase) => {
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 2000) : null;
       await fetch(`${apiBase}/database`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        signal: controller ? controller.signal : undefined
       });
+      if (timeoutId) clearTimeout(timeoutId);
     } catch (e) {
       // Background Express sync error ignored
     }
-  }
+  });
 
-  // 4. Notify open tabs & React context
-  notifyDbChanged();
+  await Promise.allSettled([cloudSave, ...expressSaves]);
 };
 
 // --- API Persistence Helpers ---
 
+// Helper to safely merge fetched remote data with existing local data
+const mergeDataSafely = (remoteData, localData) => {
+  if (!remoteData || typeof remoteData !== 'object') return localData;
+  
+  const merged = {
+    committee: Array.isArray(remoteData.committee) && remoteData.committee.length > 0 ? remoteData.committee : (localData.committee || []),
+    festivals: Array.isArray(remoteData.festivals) && remoteData.festivals.length > 0 ? remoteData.festivals : (localData.festivals || []),
+    albums: Array.isArray(remoteData.albums) && remoteData.albums.length > 0 ? remoteData.albums : (localData.albums || []),
+    photos: Array.isArray(remoteData.photos) && remoteData.photos.length > 0 ? remoteData.photos : (localData.photos || []),
+    milestones: Array.isArray(remoteData.milestones) && remoteData.milestones.length > 0 ? remoteData.milestones : (localData.milestones || []),
+    messages: Array.isArray(remoteData.messages) ? remoteData.messages : (localData.messages || [])
+  };
+
+  return merged;
+};
+
 export const fetchDatabaseApi = async () => {
-  // 1. Fetch from Remote Cloud DB (npoint.io) with cache-busting to prevent stale mobile/browser HTTP cache
+  const localDb = getDatabase();
+
+  // 1. Fetch from Remote Cloud DB (npoint.io) with cache-busting & 3.5s timeout safeguard
   try {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
     const cacheBusterUrl = `${REMOTE_DB_URL}?t=${Date.now()}`;
-    const res = await fetch(cacheBusterUrl, { cache: 'no-store' });
+    const res = await fetch(cacheBusterUrl, { 
+      cache: 'no-store',
+      signal: controller ? controller.signal : undefined
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+
     if (res.ok) {
       const text = await res.text();
       try {
         const data = JSON.parse(text);
-        if (data && typeof data === 'object' && Array.isArray(data.committee)) {
+        if (data && typeof data === 'object') {
+          const merged = mergeDataSafely(data, localDb);
           try {
-            localStorage.setItem(DB_KEY, JSON.stringify(data));
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem(DB_KEY, JSON.stringify(merged));
+            }
           } catch (e) {
             console.warn('localStorage cache update failed:', e);
           }
-          return data;
+          return merged;
         }
       } catch (jsonErr) {
-        console.warn('Remote cloud returned non-JSON payload (e.g. rate limit), falling back to local cache.');
+        console.warn('Remote cloud returned non-JSON payload, falling back to local cache.');
       }
     }
   } catch (e) {
     console.warn('Could not fetch database from remote cloud (npoint.io), trying local endpoints:', e);
   }
 
-  // 2. Fallback to Express backend endpoints
+  // 2. Fallback to Express backend endpoints with 2s timeout safeguard
   const candidateUrls = getApiBaseUrls();
   for (const apiBase of candidateUrls) {
     try {
-      const res = await fetch(`${apiBase}/database`);
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 2000) : null;
+      const res = await fetch(`${apiBase}/database`, {
+        signal: controller ? controller.signal : undefined
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+
       if (res.ok) {
         const data = await res.json();
-        if (data && typeof data === 'object' && Array.isArray(data.committee)) {
+        if (data && typeof data === 'object') {
+          const merged = mergeDataSafely(data, localDb);
           try {
-            localStorage.setItem(DB_KEY, JSON.stringify(data));
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem(DB_KEY, JSON.stringify(merged));
+            }
           } catch (e) {
             console.warn('localStorage cache update failed:', e);
           }
-          return data;
+          return merged;
         }
       }
     } catch (e) {
@@ -192,8 +246,7 @@ export const fetchDatabaseApi = async () => {
   }
 
   // 3. Fallback to localStorage cache
-  console.warn('Remote cloud & Express server not reachable, using local storage cache.');
-  return getDatabase();
+  return localDb;
 };
 
 export const getFreshDatabase = async () => {

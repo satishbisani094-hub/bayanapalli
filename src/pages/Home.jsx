@@ -72,6 +72,8 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
               src="/all_gods_hero.png" 
               alt="Lord Ganesha Divine Idol" 
               className="hero-divine-img"
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>
@@ -148,7 +150,7 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
             {recentFestivals.map(festival => (
               <div key={festival.id} className="event-card card-hover">
                 <div className="event-card-img-wrapper">
-                  <img src={festival.coverImage} alt={festival.name} className="event-card-img" />
+                  <img src={festival.coverImage} alt={festival.name} className="event-card-img" loading="lazy" decoding="async" />
                   <span className="event-card-badge">{festival.year}</span>
                 </div>
                 <div className="event-card-body">
@@ -184,7 +186,7 @@ export default function Home({ setActivePage, setGalleryFilter, setCommitteeFilt
             <div className="home-photos-grid">
               {featuredPhotos.map(photo => (
                 <div key={photo.id} className="home-photo-item" onClick={handleExploreGallery}>
-                  <img src={photo.url} alt={photo.caption} />
+                  <img src={photo.url} alt={photo.caption} loading="lazy" decoding="async" />
                   <div className="home-photo-overlay">
                     <p className="home-photo-caption">"{photo.caption}"</p>
                     <span className="home-photo-sub">{photo.location}</span>

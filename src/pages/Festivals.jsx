@@ -146,7 +146,7 @@ export default function Festivals({ selectedItem, setSelectedItem, setGalleryFil
                 {/* Event Card */}
                 <div className="timeline-flow-card card-hover">
                   <div className="flow-card-img-block">
-                    <img src={festival.coverImage} alt={festival.name} className="flow-card-img" />
+                    <img src={festival.coverImage} alt={festival.name} className="flow-card-img" loading="lazy" decoding="async" />
                     <span className="flow-card-type-badge badge badge-accent">
                       {festival.type}
                     </span>

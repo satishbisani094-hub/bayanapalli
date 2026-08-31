@@ -232,6 +232,7 @@ export default function Gallery({ selectedItem, setSelectedItem, galleryFilter, 
                   src={photo.url} 
                   alt={photo.caption || 'Bayanapalli Gallery'} 
                   loading="lazy"
+                  decoding="async"
                   className="gallery-thumbnail-img"
                 />
                 <div className="gallery-card-caption-panel">

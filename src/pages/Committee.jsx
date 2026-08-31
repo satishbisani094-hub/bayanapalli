@@ -170,7 +170,7 @@ export default function Committee({ selectedItem, setSelectedItem }) {
                     className={`member-profile-card card-hover ${highlightedId === member.id ? 'highlighted-flash' : ''}`}
                   >
                     <div className="member-image-wrapper">
-                      <img src={member.photo} alt={member.name} className="member-portrait" />
+                      <img src={member.photo} alt={member.name} className="member-portrait" loading="lazy" decoding="async" />
                       <span className="member-badge-role">{member.role}</span>
                     </div>
                     <div className="member-details">
@@ -200,7 +200,7 @@ export default function Committee({ selectedItem, setSelectedItem }) {
                     className={`member-profile-card card-hover former-opacity ${highlightedId === member.id ? 'highlighted-flash' : ''}`}
                   >
                     <div className="member-image-wrapper">
-                      <img src={member.photo} alt={member.name} className="member-portrait grayscale" />
+                      <img src={member.photo} alt={member.name} className="member-portrait grayscale" loading="lazy" decoding="async" />
                       <span className="member-badge-role former-badge">{member.role}</span>
                     </div>
                     <div className="member-details">

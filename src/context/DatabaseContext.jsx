@@ -38,19 +38,19 @@ export const DatabaseProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Initial load from Remote Cloud DB & local caches
-    const init = async () => {
-      await syncFromApi();
-      setLoading(false);
-    };
-    init();
+    // 1. Instant load from local cache so the webpage renders with 0ms delay!
+    refreshState();
+    setLoading(false);
+
+    // 2. Asynchronously sync remote cloud & API in background
+    syncFromApi();
 
     // Subscribe to cross-tab DB changes
     const unsubscribe = db.subscribeDbChanged(() => {
       syncFromApi();
     });
 
-    // Periodic polling (every 15s, matching gajawada-jewellers) to keep data in live sync
+    // Periodic polling to keep data in live sync
     const interval = setInterval(() => {
       syncFromApi();
     }, 15000);

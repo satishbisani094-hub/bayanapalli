@@ -95,7 +95,7 @@ export default function SearchModal({ onClose, setActivePage, setSelectedItem })
                   <div className="category-items">
                     {results.members.map(member => (
                       <div key={member.id} className="result-item" onClick={() => handleResultClick('member', member)}>
-                        <img src={member.photo} alt={member.name} className="result-thumbnail-circle" />
+                        <img src={member.photo} alt={member.name} className="result-thumbnail-circle" loading="lazy" decoding="async" />
                         <div className="result-info">
                           <span className="result-title-name">{member.name}</span>
                           <span className="result-subtitle">{member.role} ({member.startYear}{member.endYear ? ` - ${member.endYear}` : ' - Present'})</span>
@@ -114,7 +114,7 @@ export default function SearchModal({ onClose, setActivePage, setSelectedItem })
                   <div className="category-items">
                     {results.festivals.map(festival => (
                       <div key={festival.id} className="result-item" onClick={() => handleResultClick('festival', festival)}>
-                        <img src={festival.coverImage} alt={festival.name} className="result-thumbnail-rect" />
+                        <img src={festival.coverImage} alt={festival.name} className="result-thumbnail-rect" loading="lazy" decoding="async" />
                         <div className="result-info">
                           <span className="result-title-name">{festival.name}</span>
                           <span className="result-subtitle">{festival.date} • {festival.location}</span>
@@ -133,7 +133,7 @@ export default function SearchModal({ onClose, setActivePage, setSelectedItem })
                   <div className="category-items">
                     {results.photos.map(photo => (
                       <div key={photo.id} className="result-item" onClick={() => handleResultClick('photo', photo)}>
-                        <img src={photo.url} alt={photo.caption} className="result-thumbnail-rect" />
+                        <img src={photo.url} alt={photo.caption} className="result-thumbnail-rect" loading="lazy" decoding="async" />
                         <div className="result-info">
                           <span className="result-title-name" style={{ fontStyle: 'italic' }}>"{photo.caption}"</span>
                           <span className="result-subtitle">{photo.festivalName} ({photo.year}) • By {photo.photographer || 'Community'}</span>
